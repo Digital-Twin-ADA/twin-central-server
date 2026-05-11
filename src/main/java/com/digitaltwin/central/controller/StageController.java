@@ -4,6 +4,7 @@ import com.digitaltwin.central.model.Stage;
 import com.digitaltwin.central.service.StageService;
 import com.digitaltwin.central.dto.StageRequestDto;
 import com.digitaltwin.central.dto.StageResponseDto;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,7 +30,7 @@ public class StageController {
     }
 
     @PostMapping
-    public StageResponseDto createStage(@RequestBody StageRequestDto dto) {
+    public StageResponseDto createStage(@Valid @RequestBody StageRequestDto dto) {
         return stageService.createStage(dto);
     }
 }

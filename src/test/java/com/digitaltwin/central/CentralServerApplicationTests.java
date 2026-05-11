@@ -1,6 +1,12 @@
 package com.digitaltwin.central;
 
+import com.digitaltwin.central.dto.AlertRequestDto;
+import com.digitaltwin.central.repository.AlertRepository;
+import com.digitaltwin.central.repository.NotificationAttemptRepository;
 import com.digitaltwin.central.repository.StageRepository;
+import com.digitaltwin.central.repository.WebhookSubscriberRepository;
+import com.digitaltwin.central.service.AlertService;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +15,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.Matchers.hasSize;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -25,8 +38,23 @@ class CentralServerApplicationTests {
 	@Autowired
 	private StageRepository stageRepository;
 
+	@Autowired
+	private AlertRepository alertRepository;
+
+	@Autowired
+	private WebhookSubscriberRepository webhookSubscriberRepository;
+
+	@Autowired
+	private NotificationAttemptRepository notificationAttemptRepository;
+
+	@Autowired
+	private AlertService alertService;
+
 	@BeforeEach
 	void setUp() {
+		notificationAttemptRepository.deleteAll();
+		webhookSubscriberRepository.deleteAll();
+		alertRepository.deleteAll();
 		stageRepository.deleteAll();
 	}
 
@@ -76,4 +104,59 @@ class CentralServerApplicationTests {
 				.andExpect(jsonPath("$.overcrowded").value(true));
 	}
 
+	@Test
+	void webhooksReceiveSignedAlertPayloads() throws Exception {
+		LinkedBlockingQueue<ReceivedWebhook> received = new LinkedBlockingQueue<>();
+		HttpServer server = startWebhookServer(received);
+
+		try {
+			String webhookUrl = "http://127.0.0.1:" + server.getAddress().getPort() + "/hook";
+			mockMvc.perform(post("/api/webhooks")
+							.contentType(MediaType.APPLICATION_JSON)
+							.content("""
+									{
+									  "url": "%s",
+									  "secret": "shared-secret"
+									}
+									""".formatted(webhookUrl)))
+					.andExpect(status().isCreated());
+
+			AlertRequestDto dto = new AlertRequestDto();
+			dto.setType("TEST");
+			dto.setSeverity("LOW");
+			dto.setMessage("Webhook delivery check");
+			alertService.createAlert(dto);
+
+			ReceivedWebhook webhook = received.poll(5, TimeUnit.SECONDS);
+			assertThat(webhook)
+					.as("recorded attempts: %s", notificationAttemptRepository.findAll().stream()
+							.map(attempt -> attempt.getStatus() + " " + attempt.getLastResponse())
+							.toList())
+					.isNotNull();
+			assertThat(webhook.body()).contains("\"type\":\"TEST\"");
+			assertThat(webhook.body()).contains("\"createdAt\":");
+			assertThat(webhook.signature()).startsWith("sha256=");
+			assertThat(notificationAttemptRepository.findAll())
+					.singleElement()
+					.satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo("200"));
+		} finally {
+			server.stop(0);
+		}
+	}
+
+	private HttpServer startWebhookServer(LinkedBlockingQueue<ReceivedWebhook> received) throws IOException {
+		HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		server.createContext("/hook", exchange -> {
+			String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			String signature = exchange.getRequestHeaders().getFirst("X-Webhook-Signature");
+			received.add(new ReceivedWebhook(body, signature));
+			exchange.sendResponseHeaders(200, 0);
+			exchange.close();
+		});
+		server.start();
+		return server;
+	}
+
+	private record ReceivedWebhook(String body, String signature) {
+	}
 }

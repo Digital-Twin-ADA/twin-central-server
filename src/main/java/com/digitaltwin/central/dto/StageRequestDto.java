@@ -1,8 +1,13 @@
 package com.digitaltwin.central.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+
 public class StageRequestDto {
 
+    @NotBlank(message = "name is required")
     private String name;
+    @Min(value = 0, message = "capacity must be >= 0")
     private int capacity;
     private String zoneCode;
 
