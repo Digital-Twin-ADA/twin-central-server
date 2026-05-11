@@ -2,6 +2,8 @@ package com.digitaltwin.central.controller;
 
 import com.digitaltwin.central.model.Stage;
 import com.digitaltwin.central.service.StageService;
+import com.digitaltwin.central.dto.StageRequestDto;
+import com.digitaltwin.central.dto.StageResponseDto;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,12 +19,17 @@ public class StageController {
     }
 
     @GetMapping
-    public List<Stage> getAllStages() {
+    public List<StageResponseDto> getAllStages() {
         return stageService.getAllStages();
     }
 
+    @GetMapping("/{id}")
+    public StageResponseDto getStageById(@PathVariable Long id) {
+        return stageService.getStageById(id);
+    }
+
     @PostMapping
-    public Stage createStage(@RequestBody Stage stage) {
-        return stageService.createStage(stage);
+    public StageResponseDto createStage(@RequestBody StageRequestDto dto) {
+        return stageService.createStage(dto);
     }
 }

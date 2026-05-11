@@ -1,0 +1,10 @@
+target/*
+!target/central-server-0.0.1-SNAPSHOT.jar
+.git
+.idea
+.vscode
+.mvn/wrapper/maven-wrapper.jar
+*.iml
+*.log
+DEPLOY_AZURE.md
+DEPLOY_ORACLE.md
