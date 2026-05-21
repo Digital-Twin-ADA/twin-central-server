@@ -2,9 +2,12 @@ package com.digitaltwin.central;
 
 import com.digitaltwin.central.dto.AlertRequestDto;
 import com.digitaltwin.central.model.Artist;
+import com.digitaltwin.central.model.LineupEvent;
+import com.digitaltwin.central.model.Stage;
 import com.digitaltwin.central.repository.AlertRepository;
 import com.digitaltwin.central.repository.ArtistRepository;
 import com.digitaltwin.central.repository.FestivalInfoRepository;
+import com.digitaltwin.central.repository.LineupEventRepository;
 import com.digitaltwin.central.repository.NotificationAttemptRepository;
 import com.digitaltwin.central.repository.StageRepository;
 import com.digitaltwin.central.repository.WebhookSubscriberRepository;
@@ -21,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -45,6 +49,9 @@ class CentralServerApplicationTests {
 	private ArtistRepository artistRepository;
 
 	@Autowired
+	private LineupEventRepository lineupEventRepository;
+
+	@Autowired
 	private FestivalInfoRepository festivalInfoRepository;
 
 	@Autowired
@@ -64,6 +71,7 @@ class CentralServerApplicationTests {
 		notificationAttemptRepository.deleteAll();
 		webhookSubscriberRepository.deleteAll();
 		alertRepository.deleteAll();
+		lineupEventRepository.deleteAll();
 		stageRepository.deleteAll();
 		festivalInfoRepository.deleteAll();
 		artistRepository.deleteAll();
@@ -187,6 +195,59 @@ class CentralServerApplicationTests {
 				.andExpect(jsonPath("$.bio").value("High-energy pop artist known for immersive festival performances."))
 				.andExpect(jsonPath("$.country").value("Romania"))
 				.andExpect(jsonPath("$.imageUrl").value("https://example.com/aria-nova.jpg"));
+	}
+
+	@Test
+	void lineupEndpointReturnsEventsOrderedByStartTime() throws Exception {
+		Stage mainStage = stageRepository.save(new Stage("Main Stage", 1000, 0, false, "A1"));
+		Stage electronicStage = stageRepository.save(new Stage("Electronic Stage", 2000, 0, false, "E1"));
+
+		Artist artist = artistRepository.save(new Artist(
+				"Aria Nova",
+				"Pop",
+				"High-energy pop artist known for immersive festival performances.",
+				"Romania",
+				null
+		));
+
+		Artist dj = artistRepository.save(new Artist(
+				"DJ Pulsewave",
+				"Electronic",
+				"Electronic producer blending melodic techno with festival bass.",
+				"Netherlands",
+				null
+		));
+
+		lineupEventRepository.save(new LineupEvent(
+				dj,
+				electronicStage,
+				OffsetDateTime.parse("2026-07-10T22:00:00+03:00"),
+				OffsetDateTime.parse("2026-07-10T23:30:00+03:00"),
+				"Late Electronic Set",
+				"SCHEDULED"
+		));
+
+		lineupEventRepository.save(new LineupEvent(
+				artist,
+				mainStage,
+				OffsetDateTime.parse("2026-07-10T18:00:00+03:00"),
+				OffsetDateTime.parse("2026-07-10T19:15:00+03:00"),
+				"Opening Pop Set",
+				"SCHEDULED"
+		));
+
+		mockMvc.perform(get("/api/lineup"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[0].artistName").value("Aria Nova"))
+				.andExpect(jsonPath("$[0].artistGenre").value("Pop"))
+				.andExpect(jsonPath("$[0].stageName").value("Main Stage"))
+				.andExpect(jsonPath("$[0].stageZoneCode").value("A1"))
+				.andExpect(jsonPath("$[0].startsAt").value("2026-07-10T18:00:00+03:00"))
+				.andExpect(jsonPath("$[0].endsAt").value("2026-07-10T19:15:00+03:00"))
+				.andExpect(jsonPath("$[0].title").value("Opening Pop Set"))
+				.andExpect(jsonPath("$[0].status").value("SCHEDULED"))
+				.andExpect(jsonPath("$[1].artistName").value("DJ Pulsewave"));
 	}
 
 	@Test
