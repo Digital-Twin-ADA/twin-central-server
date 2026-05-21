@@ -2,6 +2,7 @@ package com.digitaltwin.central;
 
 import com.digitaltwin.central.dto.AlertRequestDto;
 import com.digitaltwin.central.repository.AlertRepository;
+import com.digitaltwin.central.repository.FestivalInfoRepository;
 import com.digitaltwin.central.repository.NotificationAttemptRepository;
 import com.digitaltwin.central.repository.StageRepository;
 import com.digitaltwin.central.repository.WebhookSubscriberRepository;
@@ -39,6 +40,9 @@ class CentralServerApplicationTests {
 	private StageRepository stageRepository;
 
 	@Autowired
+	private FestivalInfoRepository festivalInfoRepository;
+
+	@Autowired
 	private AlertRepository alertRepository;
 
 	@Autowired
@@ -56,6 +60,7 @@ class CentralServerApplicationTests {
 		webhookSubscriberRepository.deleteAll();
 		alertRepository.deleteAll();
 		stageRepository.deleteAll();
+		festivalInfoRepository.deleteAll();
 	}
 
 	@Test
@@ -102,6 +107,46 @@ class CentralServerApplicationTests {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.currentCrowd").value(1200))
 				.andExpect(jsonPath("$.overcrowded").value(true));
+	}
+
+	@Test
+	void festivalInfoEndpointReturnsFestivalAndStageCoordinates() throws Exception {
+		mockMvc.perform(post("/api/stages")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "name": "Main Stage",
+								  "capacity": 1000,
+								  "zoneCode": "A1",
+								  "latitude": 44.4396,
+								  "longitude": 26.0963
+								}
+								"""))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/festival/info")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "name": "ADA Festival",
+								  "latitude": 44.438,
+								  "longitude": 26.097,
+								  "description": "Digital twin test festival"
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("ADA Festival"))
+				.andExpect(jsonPath("$.latitude").value(44.438))
+				.andExpect(jsonPath("$.longitude").value(26.097));
+
+		mockMvc.perform(get("/api/festival/info"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("ADA Festival"))
+				.andExpect(jsonPath("$.stages", hasSize(1)))
+				.andExpect(jsonPath("$.stages[0].name").value("Main Stage"))
+				.andExpect(jsonPath("$.stages[0].zoneCode").value("A1"))
+				.andExpect(jsonPath("$.stages[0].latitude").value(44.4396))
+				.andExpect(jsonPath("$.stages[0].longitude").value(26.0963));
 	}
 
 	@Test

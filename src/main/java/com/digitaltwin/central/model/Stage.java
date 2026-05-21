@@ -21,6 +21,10 @@ public class Stage {
 
     private String zoneCode;
 
+    private Double latitude;
+
+    private Double longitude;
+
     // Constructors
     public Stage() {
     }
@@ -76,5 +80,21 @@ public class Stage {
 
     public void setZoneCode(String zoneCode) {
         this.zoneCode = zoneCode;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 }

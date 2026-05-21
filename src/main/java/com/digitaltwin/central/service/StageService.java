@@ -30,7 +30,9 @@ public class StageService {
                         stage.getCapacity(),
                         stage.getCurrentCrowd(),
                         stage.isOvercrowded(),
-                        stage.getZoneCode()
+                        stage.getZoneCode(),
+                        stage.getLatitude(),
+                        stage.getLongitude()
                 ))
                 .toList();
     }
@@ -45,6 +47,8 @@ public class StageService {
         stage.setName(dto.getName());
         stage.setCapacity(dto.getCapacity());
         stage.setZoneCode(dto.getZoneCode());
+        stage.setLatitude(dto.getLatitude());
+        stage.setLongitude(dto.getLongitude());
 
         stage.setCurrentCrowd(0);
         stage.setOvercrowded(false);
@@ -57,7 +61,9 @@ public class StageService {
                 saved.getCapacity(),
                 saved.getCurrentCrowd(),
                 saved.isOvercrowded(),
-                saved.getZoneCode()
+                saved.getZoneCode(),
+                saved.getLatitude(),
+                saved.getLongitude()
         );
     }
 
@@ -76,7 +82,9 @@ public class StageService {
             stage.getCapacity(),
             stage.getCurrentCrowd(),
             stage.isOvercrowded(),
-            stage.getZoneCode()
+            stage.getZoneCode(),
+            stage.getLatitude(),
+            stage.getLongitude()
         );
     }
 }

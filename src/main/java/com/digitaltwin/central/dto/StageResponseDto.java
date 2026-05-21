@@ -8,8 +8,16 @@ public class StageResponseDto {
     private int currentCrowd;
     private boolean overcrowded;
     private String zoneCode;
+    private Double latitude;
+    private Double longitude;
 
     public StageResponseDto(Long id, String name, int capacity, int currentCrowd, boolean overcrowded, String zoneCode)
+    {
+        this(id, name, capacity, currentCrowd, overcrowded, zoneCode, null, null);
+    }
+
+    public StageResponseDto(Long id, String name, int capacity, int currentCrowd, boolean overcrowded, String zoneCode,
+                            Double latitude, Double longitude)
     {
         this.id = id;
         this.name = name;
@@ -17,6 +25,8 @@ public class StageResponseDto {
         this.currentCrowd = currentCrowd;
         this.overcrowded = overcrowded;
         this.zoneCode = zoneCode;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public Long getId() {
@@ -41,6 +51,14 @@ public class StageResponseDto {
 
     public String getZoneCode() {
         return zoneCode;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
     }
     
 }
