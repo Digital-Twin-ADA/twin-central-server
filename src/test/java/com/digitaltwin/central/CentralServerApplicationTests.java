@@ -1,7 +1,9 @@
 package com.digitaltwin.central;
 
 import com.digitaltwin.central.dto.AlertRequestDto;
+import com.digitaltwin.central.model.Artist;
 import com.digitaltwin.central.repository.AlertRepository;
+import com.digitaltwin.central.repository.ArtistRepository;
 import com.digitaltwin.central.repository.FestivalInfoRepository;
 import com.digitaltwin.central.repository.NotificationAttemptRepository;
 import com.digitaltwin.central.repository.StageRepository;
@@ -40,6 +42,9 @@ class CentralServerApplicationTests {
 	private StageRepository stageRepository;
 
 	@Autowired
+	private ArtistRepository artistRepository;
+
+	@Autowired
 	private FestivalInfoRepository festivalInfoRepository;
 
 	@Autowired
@@ -61,6 +66,7 @@ class CentralServerApplicationTests {
 		alertRepository.deleteAll();
 		stageRepository.deleteAll();
 		festivalInfoRepository.deleteAll();
+		artistRepository.deleteAll();
 	}
 
 	@Test
@@ -147,6 +153,40 @@ class CentralServerApplicationTests {
 				.andExpect(jsonPath("$.stages[0].zoneCode").value("A1"))
 				.andExpect(jsonPath("$.stages[0].latitude").value(44.4396))
 				.andExpect(jsonPath("$.stages[0].longitude").value(26.0963));
+	}
+
+	@Test
+	void artistEndpointsReturnListAndDetails() throws Exception {
+		Artist artist = artistRepository.save(new Artist(
+				"Aria Nova",
+				"Pop",
+				"High-energy pop artist known for immersive festival performances.",
+				"Romania",
+				"https://example.com/aria-nova.jpg"
+		));
+
+		artistRepository.save(new Artist(
+				"DJ Pulsewave",
+				"Electronic",
+				"Electronic producer blending melodic techno with festival bass.",
+				"Netherlands",
+				null
+		));
+
+		mockMvc.perform(get("/api/artists"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[0].name").value("Aria Nova"))
+				.andExpect(jsonPath("$[0].genre").value("Pop"));
+
+		mockMvc.perform(get("/api/artists/{id}", artist.getId()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(artist.getId()))
+				.andExpect(jsonPath("$.name").value("Aria Nova"))
+				.andExpect(jsonPath("$.genre").value("Pop"))
+				.andExpect(jsonPath("$.bio").value("High-energy pop artist known for immersive festival performances."))
+				.andExpect(jsonPath("$.country").value("Romania"))
+				.andExpect(jsonPath("$.imageUrl").value("https://example.com/aria-nova.jpg"));
 	}
 
 	@Test
